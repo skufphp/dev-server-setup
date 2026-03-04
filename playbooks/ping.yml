@@ -1,0 +1,7 @@
+---
+- name: Проверить доступность всех серверов
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Ping
+      ping:

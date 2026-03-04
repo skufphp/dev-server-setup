@@ -1,0 +1,69 @@
+---
+- name: Обновить apt кэш
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Обновить все пакеты
+  apt:
+    upgrade: safe
+
+- name: Установить базовые пакеты
+  apt:
+    name: "{{ common_packages }}"
+    state: present
+
+- name: Настроить часовой пояс
+  timezone:
+    name: UTC
+
+- name: Включить автоматические обновления безопасности
+  apt:
+    name: unattended-upgrades
+    state: present
+
+- name: Настроить SSH — запретить root login
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: "^#?PermitRootLogin"
+    line: "PermitRootLogin {{ ssh_permit_root_login }}"
+  notify: restart sshd
+
+- name: Настроить SSH — запретить аутентификацию по паролю
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: "^#?PasswordAuthentication"
+    line: "PasswordAuthentication {{ ssh_password_authentication }}"
+  notify: restart sshd
+
+- name: Настроить swap (если нет)
+  block:
+    - name: Проверить наличие swap
+      command: swapon --show
+      register: swap_check
+      changed_when: false
+
+    - name: Создать swap файл (2G)
+      command: fallocate -l 2G /swapfile
+      when: swap_check.stdout == ""
+
+    - name: Установить права на swap
+      file:
+        path: /swapfile
+        mode: "0600"
+      when: swap_check.stdout == ""
+
+    - name: Инициализировать swap
+      command: mkswap /swapfile
+      when: swap_check.stdout == ""
+
+    - name: Включить swap
+      command: swapon /swapfile
+      when: swap_check.stdout == ""
+
+    - name: Добавить swap в fstab
+      lineinfile:
+        path: /etc/fstab
+        line: "/swapfile none swap sw 0 0"
+        state: present
+      when: swap_check.stdout == ""

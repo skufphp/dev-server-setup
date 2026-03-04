@@ -1,0 +1,52 @@
+# OS artifacts
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# IDE/editor
+.idea/
+.vscode/
+*.iml
+*.swp
+*.swo
+*~
+
+# Python/Ansible runtime artifacts
+__pycache__/
+*.py[cod]
+*.retry
+*.log
+*.out
+*.pid
+*.tmp
+.cache/
+.mypy_cache/
+.pytest_cache/
+.ansible/
+ansible.log
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Local overrides
+inventory/hosts.local.ini
+group_vars/*.local.yml
+group_vars/**/*.local.yml
+host_vars/*.local.yml
+host_vars/**/*.local.yml
+
+# Secrets
+.env
+.env.*
+!.env.example
+*.vault
+*.pem
+*.key
+*.p12
+*.pfx
+vault_pass.txt
+.vault_pass
+secrets.yml
+secrets.yaml

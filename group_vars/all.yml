@@ -1,0 +1,42 @@
+---
+# =============================================================================
+# Общие переменные для всех хостов
+# =============================================================================
+
+# --- Tailscale ----------------------------------------------------------------
+tailscale_auth_key: "{{ lookup('env', 'TAILSCALE_AUTH_KEY') }}"
+
+# --- Docker -------------------------------------------------------------------
+docker_edition: "ce"
+docker_compose_version: "v2.24.5"
+
+# --- Системные пакеты --------------------------------------------------------
+common_packages:
+  - curl
+  - wget
+  - git
+  - htop
+  - vim
+  - unzip
+  - apt-transport-https
+  - ca-certificates
+  - gnupg
+  - lsb-release
+  - software-properties-common
+  - fail2ban
+
+# --- SSH ----------------------------------------------------------------------
+ssh_port: 22
+ssh_permit_root_login: "no"
+ssh_password_authentication: "no"
+
+# --- Firewall (UFW) -----------------------------------------------------------
+ufw_default_incoming: "deny"
+ufw_default_outgoing: "allow"
+
+# --- Swarm порты (через Tailscale) -------------------------------------------
+swarm_ports:
+  - { port: "2377", proto: "tcp" }   # management
+  - { port: "7946", proto: "tcp" }   # gossip
+  - { port: "7946", proto: "udp" }   # gossip
+  - { port: "4789", proto: "udp" }   # overlay VXLAN

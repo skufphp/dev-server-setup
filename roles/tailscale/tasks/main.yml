@@ -1,0 +1,44 @@
+---
+- name: Добавить GPG ключ Tailscale
+  apt_key:
+    url: https://pkgs.tailscale.com/stable/ubuntu/{{ ansible_distribution_release }}.noarmor.gpg
+    state: present
+
+- name: Добавить Tailscale репозиторий
+  apt_repository:
+    repo: "deb https://pkgs.tailscale.com/stable/ubuntu {{ ansible_distribution_release }} main"
+    state: present
+    filename: tailscale
+
+- name: Установить Tailscale
+  apt:
+    name: tailscale
+    state: present
+    update_cache: yes
+
+- name: Запустить и включить tailscaled
+  service:
+    name: tailscaled
+    state: started
+    enabled: yes
+
+- name: Проверить статус Tailscale
+  command: tailscale status
+  register: ts_status
+  changed_when: false
+  failed_when: false
+
+- name: Авторизовать ноду в Tailscale (если не подключена)
+  command: tailscale up --authkey={{ tailscale_auth_key }} --accept-routes
+  when:
+    - tailscale_auth_key | length > 0
+    - ts_status.rc != 0 or "Logged out" in ts_status.stdout
+
+- name: Получить Tailscale IP
+  command: tailscale ip -4
+  register: tailscale_ip
+  changed_when: false
+
+- name: Сохранить Tailscale IP как факт
+  set_fact:
+    tailscale_ipv4: "{{ tailscale_ip.stdout | trim }}"

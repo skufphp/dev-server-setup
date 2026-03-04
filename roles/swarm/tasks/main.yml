@@ -1,0 +1,39 @@
+---
+- name: Проверить статус Swarm
+  command: docker info --format '{{ "{{" }} .Swarm.LocalNodeState {{ "}}" }}'
+  register: swarm_status
+  changed_when: false
+
+- name: Инициализировать Swarm на manager-ноде
+  command: "docker swarm init --advertise-addr {{ tailscale_ipv4 }}"
+  when:
+    - inventory_hostname in groups['managers']
+    - swarm_status.stdout != "active"
+
+- name: Получить worker join-token
+  command: docker swarm join-token worker -q
+  register: worker_token
+  changed_when: false
+  when: inventory_hostname in groups['managers']
+  run_once: true
+
+- name: Получить manager join-token
+  command: docker swarm join-token manager -q
+  register: manager_token
+  changed_when: false
+  when: inventory_hostname in groups['managers']
+  run_once: true
+
+- name: Сохранить токены как факты на manager
+  set_fact:
+    swarm_worker_token: "{{ worker_token.stdout }}"
+    swarm_manager_token: "{{ manager_token.stdout }}"
+    swarm_manager_addr: "{{ tailscale_ipv4 }}:2377"
+  when: inventory_hostname in groups['managers']
+  run_once: true
+
+- name: Присоединить worker-ноды к Swarm
+  command: "docker swarm join --token {{ hostvars[groups['managers'][0]]['swarm_worker_token'] }} {{ hostvars[groups['managers'][0]]['swarm_manager_addr'] }}"
+  when:
+    - inventory_hostname in groups.get('workers', [])
+    - swarm_status.stdout != "active"

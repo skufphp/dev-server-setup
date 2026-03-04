@@ -1,0 +1,61 @@
+---
+- name: Установить UFW
+  apt:
+    name: ufw
+    state: present
+
+- name: Установить политику по умолчанию — входящие
+  ufw:
+    direction: incoming
+    policy: "{{ ufw_default_incoming }}"
+
+- name: Установить политику по умолчанию — исходящие
+  ufw:
+    direction: outgoing
+    policy: "{{ ufw_default_outgoing }}"
+
+- name: Разрешить SSH
+  ufw:
+    rule: allow
+    port: "{{ ssh_port | string }}"
+    proto: tcp
+
+- name: Разрешить Tailscale (UDP 41641)
+  ufw:
+    rule: allow
+    port: "41641"
+    proto: udp
+
+- name: Разрешить Swarm порты на интерфейсе tailscale0
+  ufw:
+    rule: allow
+    interface: tailscale0
+    direction: in
+    port: "{{ item.port }}"
+    proto: "{{ item.proto }}"
+  loop: "{{ swarm_ports }}"
+
+- name: Разрешить весь трафик на tailscale0 (mesh VPN)
+  ufw:
+    rule: allow
+    interface: tailscale0
+    direction: in
+
+- name: Разрешить HTTP/HTTPS (для веб-сервисов)
+  ufw:
+    rule: allow
+    port: "{{ item }}"
+    proto: tcp
+  loop:
+    - "80"
+    - "443"
+
+- name: Включить UFW
+  ufw:
+    state: enabled
+
+- name: Настроить fail2ban
+  service:
+    name: fail2ban
+    state: started
+    enabled: yes

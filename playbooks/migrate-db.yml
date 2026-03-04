@@ -1,0 +1,40 @@
+---
+# =============================================================================
+# Миграция PostgreSQL между серверами
+# =============================================================================
+# Использование:
+#   ansible-playbook playbooks/migrate-db.yml \
+#     -e "source_host=prod-manager-1" \
+#     -e "target_host=prod-manager-2" \
+#     -e "db_name=mydb" \
+#     -e "db_user=postgres"
+# =============================================================================
+
+- name: Дамп БД на исходном сервере
+  hosts: "{{ source_host }}"
+  become: true
+  tasks:
+    - name: Создать дамп PostgreSQL
+      command: "pg_dump -U {{ db_user }} {{ db_name }}"
+      register: db_dump
+
+    - name: Сохранить дамп во временный файл
+      copy:
+        content: "{{ db_dump.stdout }}"
+        dest: "/tmp/{{ db_name }}_dump.sql"
+        mode: "0600"
+
+    - name: Скопировать дамп на целевой сервер
+      command: "scp /tmp/{{ db_name }}_dump.sql {{ ansible_user }}@{{ target_host }}:/tmp/"
+
+- name: Восстановить БД на целевом сервере
+  hosts: "{{ target_host }}"
+  become: true
+  tasks:
+    - name: Восстановить дамп PostgreSQL
+      shell: "psql -U {{ db_user }} {{ db_name }} < /tmp/{{ db_name }}_dump.sql"
+
+    - name: Удалить временный файл дампа
+      file:
+        path: "/tmp/{{ db_name }}_dump.sql"
+        state: absent
