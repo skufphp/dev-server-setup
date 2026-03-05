@@ -1,0 +1,97 @@
+---
+# =============================================================================
+# Hardening: базовые настройки безопасности
+# Запускать после bootstrap от пользователя ansible
+# =============================================================================
+- name: Hardening — настройка безопасности
+  hosts: all
+  become: true
+  vars:
+    default_user: skufphp
+    allow_users:
+      - ansible
+      - skufphp
+
+  tasks:
+    # --- SSH hardening --------------------------------------------------------
+    - name: "SSH: отключить аутентификацию по паролю"
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: "^#?PasswordAuthentication"
+        line: "PasswordAuthentication no"
+        validate: "sshd -t -f %s"
+      notify: Restart sshd
+
+    - name: "SSH: запретить вход root"
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: "^#?PermitRootLogin"
+        line: "PermitRootLogin no"
+        validate: "sshd -t -f %s"
+      notify: Restart sshd
+
+    - name: "SSH: включить аутентификацию по ключу"
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: "^#?PubkeyAuthentication"
+        line: "PubkeyAuthentication yes"
+        validate: "sshd -t -f %s"
+      notify: Restart sshd
+
+    - name: "SSH: настроить AllowUsers"
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: "^#?AllowUsers"
+        line: "AllowUsers {{ allow_users | join(' ') }}"
+        validate: "sshd -t -f %s"
+      when: allow_users is defined and allow_users | length > 0
+      notify: Restart sshd
+
+    # --- UFW ------------------------------------------------------------------
+    - name: Установить ufw
+      ansible.builtin.apt:
+        name: ufw
+        state: present
+        update_cache: true
+
+    - name: Проверить наличие интерфейса tailscale0
+      ansible.builtin.command: ip link show tailscale0
+      register: tailscale_iface
+      changed_when: false
+      failed_when: false
+
+    - name: "UFW: разрешить SSH только через tailscale0"
+      community.general.ufw:
+        rule: allow
+        port: "22"
+        proto: tcp
+        interface: tailscale0
+        direction: in
+      when: tailscale_iface.rc == 0
+
+    - name: "UFW: разрешить SSH (без ограничения интерфейса)"
+      community.general.ufw:
+        rule: allow
+        port: "22"
+        proto: tcp
+      when: tailscale_iface.rc != 0
+
+    - name: "UFW: политика по умолчанию — deny incoming"
+      community.general.ufw:
+        default: deny
+        direction: incoming
+
+    - name: "UFW: политика по умолчанию — allow outgoing"
+      community.general.ufw:
+        default: allow
+        direction: outgoing
+
+    - name: "UFW: включить файрвол"
+      community.general.ufw:
+        state: enabled
+
+  handlers:
+    - name: Restart sshd
+      ansible.builtin.service:
+        name: sshd
+        state: restarted

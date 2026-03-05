@@ -205,6 +205,46 @@ ansible-playbook playbooks/setup.yml --limit dev-manager-1
 
 ## Плейбуки
 
+### `playbooks/bootstrap.yml` — Bootstrap нового сервера
+
+Создаёт пользователя `ansible` с sudo-доступом без пароля и добавляет SSH-ключ. Запускается **один раз** от дефолтного пользователя `skufphp`.
+
+```bash
+# 1. Убедитесь, что SSH-доступ по ключу работает для skufphp
+ssh skufphp@<сервер> "whoami"
+
+# 2. Запустить bootstrap
+ansible-playbook playbooks/bootstrap.yml --user skufphp
+
+# 3. Проверить, что пользователь ansible может подключиться
+ssh ansible@<сервер> "whoami"
+```
+
+Переменные:
+- `ansible_public_key` — публичный ключ (по умолчанию читается из `~/.ssh/id_rsa.pub`)
+
+### `playbooks/hardening.yml` — Базовая безопасность
+
+Настраивает SSH (запрет паролей, запрет root, AllowUsers) и UFW. Запускается **после bootstrap** от пользователя `ansible`.
+
+> **⚠️ Перед применением:** откройте **второй SSH-сеанс** к серверу и держите его открытым. Если что-то пойдёт не так с SSH-конфигурацией, вы сможете откатить изменения через второй сеанс.
+
+```bash
+# 1. Открыть второй SSH-сеанс (в отдельном терминале) и не закрывать его:
+ssh ansible@<сервер>
+
+# 2. Запустить hardening
+ansible-playbook playbooks/hardening.yml --user ansible
+
+# 3. Проверить, что доступ по ключу работает (в третьем терминале):
+ssh ansible@<сервер> "whoami"
+ssh skufphp@<сервер> "whoami"
+```
+
+Переменные:
+- `allow_users` — список пользователей для AllowUsers (по умолчанию: `ansible`, `skufphp`)
+- `default_user` — дефолтный пользователь (по умолчанию: `skufphp`)
+
 ### `playbooks/setup.yml` — Полная раскатка
 
 Применяет все роли последовательно: common → docker → tailscale → firewall → swarm.

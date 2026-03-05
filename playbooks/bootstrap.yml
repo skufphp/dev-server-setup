@@ -1,0 +1,55 @@
+---
+# =============================================================================
+# Bootstrap: создание пользователя ansible на новом сервере
+# Запускать от дефолтного пользователя (skufphp) с --user skufphp
+# =============================================================================
+- name: Bootstrap — создание пользователя ansible
+  hosts: all
+  become: true
+  vars:
+    ansible_public_key: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
+    default_user: skufphp
+
+  tasks:
+    - name: Создать пользователя ansible
+      ansible.builtin.user:
+        name: ansible
+        shell: /bin/bash
+        create_home: true
+        state: present
+
+    - name: Добавить ansible в группу sudo
+      ansible.builtin.user:
+        name: ansible
+        groups: sudo
+        append: true
+
+    - name: Настроить sudo без пароля для ansible
+      ansible.builtin.copy:
+        dest: /etc/sudoers.d/ansible
+        content: "ansible ALL=(ALL) NOPASSWD:ALL\n"
+        owner: root
+        group: root
+        mode: "0440"
+        validate: "visudo -cf %s"
+
+    - name: Создать директорию .ssh для ansible
+      ansible.builtin.file:
+        path: /home/ansible/.ssh
+        state: directory
+        owner: ansible
+        group: ansible
+        mode: "0700"
+
+    - name: Добавить публичный ключ для ansible
+      ansible.builtin.authorized_key:
+        user: ansible
+        key: "{{ ansible_public_key }}"
+        state: present
+
+    - name: Установить права на authorized_keys
+      ansible.builtin.file:
+        path: /home/ansible/.ssh/authorized_keys
+        owner: ansible
+        group: ansible
+        mode: "0600"
