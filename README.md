@@ -138,10 +138,10 @@ ansible-playbook playbooks/setup.yml --limit dev-manager-1
 
 Серверы разделены на группы:
 
-| Группа | Описание |
-|--------|----------|
+| Группа     | Описание                  |
+|------------|---------------------------|
 | `managers` | Manager-ноды dev-кластера |
-| `workers` | Worker-ноды dev-кластера |
+| `workers`  | Worker-ноды dev-кластера  |
 
 > **Важно:** используйте MagicDNS-имена (требуется включённый MagicDNS в Tailscale). Если MagicDNS не включён — используйте Tailscale IP (`100.x.x.x`).
 
@@ -151,16 +151,16 @@ ansible-playbook playbooks/setup.yml --limit dev-manager-1
 
 Файл: `group_vars/all.yml`
 
-| Переменная | Описание | Значение по умолчанию |
-|------------|----------|-----------------------|
-| `tailscale_auth_key` | Auth key для Tailscale | из env `TAILSCALE_AUTH_KEY` |
-| `docker_edition` | Редакция Docker | `ce` |
-| `common_packages` | Список системных пакетов | см. файл |
-| `ssh_port` | Порт SSH | `22` |
-| `ssh_permit_root_login` | Разрешить root login | `no` |
-| `ssh_password_authentication` | Аутентификация по паролю | `no` |
-| `ufw_default_incoming` | Политика UFW (входящие) | `deny` |
-| `swarm_ports` | Порты Docker Swarm | 2377, 7946, 4789 |
+| Переменная                    | Описание                 | Значение по умолчанию       |
+|-------------------------------|--------------------------|-----------------------------|
+| `tailscale_auth_key`          | Auth key для Tailscale   | из env `TAILSCALE_AUTH_KEY` |
+| `docker_edition`              | Редакция Docker          | `ce`                        |
+| `common_packages`             | Список системных пакетов | см. файл                    |
+| `ssh_port`                    | Порт SSH                 | `22`                        |
+| `ssh_permit_root_login`       | Разрешить root login     | `no`                        |
+| `ssh_password_authentication` | Аутентификация по паролю | `no`                        |
+| `ufw_default_incoming`        | Политика UFW (входящие)  | `deny`                      |
+| `swarm_ports`                 | Порты Docker Swarm       | 2377, 7946, 4789            |
 
 ---
 
@@ -377,4 +377,3 @@ ansible-playbook playbooks/setup.yml --tags docker
 ## Ссылки
 
 - [STRATEGY.md](STRATEGY.md) — полное описание стратегии Black Friday Rolling Migration
-- [DETAILS.md](DETAILS.md) — детали настройки Tailscale, ACL и MagicDNS
